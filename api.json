@@ -1,0 +1,2435 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Serialized",
+    "description": "Serialized API",
+    "termsOfService": "https://serialized.io/policies/terms",
+    "contact": {
+      "name": "Serialized",
+      "email": "info@serialized.io"
+    },
+    "version": "2.20.0"
+  },
+  "host": "api.serialized.io",
+  "schemes": [
+    "https"
+  ],
+  "basePath": "/",
+  "securityDefinitions": {
+    "accessKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Serialized-Access-Key"
+    },
+    "secretAccessKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Serialized-Secret-Access-Key"
+    }
+  },
+  "security": [
+    {
+      "accessKey": [],
+      "secretAccessKey": []
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/aggregates/{aggregateType}/{aggregateId}/events": {
+      "post": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "storeEvents",
+        "summary": "Store events",
+        "description": "Stores all events in the request atomically. All events must refer to the same aggregate id.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type.",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "aggregateId",
+            "in": "path",
+            "description": "The unique id of the aggregate",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "eventBatch",
+            "in": "body",
+            "description": "Batch of one or more events",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EventBatch",
+              "example": {
+                "events": [
+                  {
+                    "eventType": "OrderPlaced",
+                    "eventId": "f2c8bfc1-c702-4f1a-b295-ef113ed7c8be",
+                    "data": {
+                      "sku": "15522-aad-12",
+                      "amount": 1000,
+                      "currency": "USD"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event(s) successfully stored."
+          },
+          "400": {
+            "description": "Invalid aggregate type or field name."
+          },
+          "409": {
+            "description": "Conflict due to expected version mismatch."
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    },
+    "/aggregates/{aggregateType}/events": {
+      "post": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "bulkStoreEvents",
+        "summary": "Bulk Store events",
+        "description": "Bulk stores all events in the request atomically. All events must refer to unique aggregate ids.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type.",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "bulk",
+            "in": "body",
+            "description": "Bulk of one or more batches",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Bulk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event(s) successfully stored."
+          },
+          "400": {
+            "description": "Invalid aggregate type or field name."
+          },
+          "409": {
+            "description": "Conflict due to expected version mismatch."
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    },
+    "/aggregates/{aggregateType}": {
+      "delete": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "deleteAggregatesByType",
+        "summary": "Delete all aggregates by type",
+        "description": "Permanently delete all aggregates, including all events, for given aggregate type.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "deleteToken",
+            "in": "query",
+            "description": "Valid delete token. Will be included in the response of the first DELETE request.",
+            "required": false,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The generated temporary delete token needed to permanently delete all aggregates. The token will be valid for ten minutes and must be passed as a query parameter to trigger the delete of all the aggregates.",
+            "schema": {
+              "description": "The delete token, valid for ten minutes.",
+              "type": "object",
+              "properties": {
+                "deleteToken": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "12c3780f-2dcb-340f-5532-5693be83f21c"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "If delete token was valid and the aggregate was successfully deleted."
+          },
+          "403": {
+            "description": "If delete token was invalid or expired."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "listAggregatesByType",
+        "summary": "List aggregates by type",
+        "description": "List aggregates to get the current version and last updated time.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Optional number to start from",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Optional limit. Default is 1000.",
+            "required": false,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregate successfully listed",
+            "examples": {
+              "aggregates": [
+                {
+                  "aggregateId": "f437d921-2424-4dd6-880c-fdab1f7c592f",
+                  "aggregateType": "order",
+                  "aggregateVersion": 3,
+                  "lastUpdatedAt": 1669725860711
+                },
+                {
+                  "aggregateId": "f52c7a25-7289-48d4-b8cf-13725819abba",
+                  "aggregateType": "order",
+                  "aggregateVersion": 3,
+                  "lastUpdatedAt": 1669725760624
+                }
+              ]
+            },
+            "schema": {
+              "description": "The list of aggregates.",
+              "type": "object",
+              "properties": {
+                "aggregates": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/AggregateSummary"
+                  }
+                },
+                "hasMore": {
+                  "description": "Indicates if there are more summaries available.",
+                  "type": "boolean",
+                  "example": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/aggregates/{aggregateType}/{aggregateId}": {
+      "head": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "aggregateExists",
+        "summary": "Check if an aggregate exists",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "aggregateId",
+            "in": "path",
+            "description": "The unique id of the aggregate",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "If aggregate exists"
+          },
+          "404": {
+            "description": "If aggregate does not exist."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "deleteAggregate",
+        "summary": "Delete an aggregate",
+        "description": "Permanently delete an aggregate, including all events.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "aggregateId",
+            "in": "path",
+            "description": "The unique id of the aggregate",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "deleteToken",
+            "in": "query",
+            "description": "Valid delete token. Will be included in the response to the first DELETE request.",
+            "required": false,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The generated temporary delete token needed to permanently delete the aggregate. The token will be valid for ten minutes and must be passed as a query parameter to trigger the delete of the aggregate.",
+            "schema": {
+              "description": "The delete token, valid for ten minutes.",
+              "type": "object",
+              "properties": {
+                "deleteToken": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "12c3780f-2dcb-340f-5532-5693be83f21c"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "If delete token was valid and the aggregate was successfully deleted."
+          },
+          "403": {
+            "description": "If delete token was invalid or expired."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Event Sourcing API"
+        ],
+        "operationId": "loadEvents",
+        "summary": "Load all events for an aggregate",
+        "description": "By loading all events for a single aggregate we can derive the current state.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "aggregateType",
+            "in": "path",
+            "description": "The aggregate type",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "aggregateId",
+            "in": "path",
+            "description": "The unique id of the aggregate",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional version number to start from",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Optional version limit. Default is 1000.",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "includeMetadata",
+            "in": "query",
+            "description": "Adds timestamp and aggregateVersion to the response.",
+            "required": false,
+            "default": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregate successfully loaded",
+            "schema": {
+              "description": "The aggregate containing all its events, since the beginning of time.",
+              "type": "object",
+              "properties": {
+                "aggregateId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+                },
+                "aggregateVersion": {
+                  "description": "Current aggregate version. Can be passed as 'expectedVersion' on next update to enable optimistic concurrency control.",
+                  "type": "integer",
+                  "example": 1
+                },
+                "aggregateType": {
+                  "type": "string",
+                  "example": "payment",
+                  "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+                },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Event"
+                  }
+                },
+                "hasMore": {
+                  "description": "Indicates if there are more versions available.",
+                  "type": "boolean",
+                  "example": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "If aggregate not found."
+          }
+        }
+      }
+    },
+    "/feeds": {
+      "get": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "listFeeds",
+        "summary": "Get event feeds overview",
+        "description": "Overview showing number of batches, aggregates and events per aggregate type.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feeds successfully received",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "feeds": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/FeedInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feeds/_all": {
+      "head": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "getCurrentGlobalSequenceNumber",
+        "summary": "Get current global sequence number",
+        "description": "Get current global sequence number at head for all feeds",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Serialized-SequenceNumber-Current": {
+                "type": "integer",
+                "description": "Current sequence number at head"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "feedEvents",
+        "summary": "Get feed of events for all types",
+        "description": "Get all events for all aggregates for all types (feed names). The payload is returned with the event batches in insertion order, each with a unique sequence number.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional sequence number to start from (exclusive)",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Optional response limit. Default is 1000.",
+            "required": false,
+            "type": "integer",
+            "default": 1000
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to start from, inclusive, eg. 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to stop at, exclusive, eg. 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "name": "partitionCount",
+            "in": "query",
+            "description": "The expected total number of partitions, i.e. the total number of consumers feeding in parallel.",
+            "required": false,
+            "type": "integer",
+            "default": 1
+          },
+          {
+            "name": "partitionNumber",
+            "in": "query",
+            "description": "The partition number to request.",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "waitTime",
+            "in": "query",
+            "description": "If provided, will generate a long-polling request. This is the maximum time (in ms) to wait before responding. Maximum value is 60000.",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "filterType",
+            "in": "query",
+            "description": "If provided, filters the feed on the given aggregate types. Provide multiple values to filter on more than one aggregate type.",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed successfully received",
+            "schema": {
+              "$ref": "#/definitions/Feed"
+            }
+          }
+        }
+      }
+    },
+    "/feeds/count": {
+      "get": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "getCount",
+        "summary": "Get total number of event batches",
+        "description": "Get the total number of event batches.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to start from, inclusive, eg. 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to stop at, exclusive, 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed successfully received",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "totalCount": {
+                  "description": "Total count",
+                  "type": "integer",
+                  "format": "int64",
+                  "example": 12345
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feeds/{name}": {
+      "head": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "getCurrentSequenceNumber",
+        "summary": "Get current sequence number",
+        "description": "Get current sequence number at head for a given feed",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the feed",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Serialized-SequenceNumber-Current": {
+                "type": "integer",
+                "description": "Current sequence number at feed head"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "feedEventsByType",
+        "summary": "Get feed of events",
+        "description": "Get all events for all aggregates given a type (feed name). The payload is returned with the event batches in insertion order, each with a unique sequence number.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the feed (aggregate type)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional sequence number to start from, exclusive.",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Optional response limit. Default is 1000.",
+            "required": false,
+            "type": "integer",
+            "default": 1000
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to start from, inclusive, eg. 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to stop at, exclusive, 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "name": "partitionCount",
+            "in": "query",
+            "description": "The expected total number of partitions, i.e. the total number of consumers feeding in parallel.",
+            "required": false,
+            "type": "integer",
+            "default": 1
+          },
+          {
+            "name": "partitionNumber",
+            "in": "query",
+            "description": "The partition number to request.",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "waitTime",
+            "in": "query",
+            "description": "If provided, will generate a long-polling request. This is the maximum time (in ms) to wait before responding. Maximum value is 60000.",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed successfully received",
+            "schema": {
+              "$ref": "#/definitions/Feed"
+            }
+          }
+        }
+      }
+    },
+    "/feeds/{name}/count": {
+      "get": {
+        "tags": [
+          "Event Feed API"
+        ],
+        "operationId": "getCountByType",
+        "summary": "Get total number of event batches",
+        "description": "Get the number of event batches for a given aggregate type (feed name).",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the feed (aggregate type)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to start from, inclusive, eg. 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional ISO 8601 date-time string to stop at, exclusive, 2017-07-21T17:32:28.",
+            "required": false,
+            "format": "date-time",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed successfully received",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "totalCount": {
+                  "description": "Total count",
+                  "type": "integer",
+                  "format": "int64",
+                  "example": 12345
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reactions": {
+      "get": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "listReactions",
+        "summary": "List reactions",
+        "description": "List reactions",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Status to filter. Possible values are: SCHEDULED, READY, ONGOING, COMPLETED, CANCELED, FAILED.",
+            "required": false,
+            "type": "string",
+            "default": "ALL"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of entries to skip",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max number of entries to include in response. Default is 10.",
+            "required": false,
+            "type": "integer",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Reactions"
+            }
+          }
+        }
+      }
+    },
+    "/reactions/{reactionId}": {
+      "delete": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "deleteScheduledReaction",
+        "summary": "Delete a scheduled reaction",
+        "description": "This endpoint allows you to delete a reaction that has not yet been executed.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "reactionId",
+            "in": "path",
+            "description": "ID of the scheduled reaction to delete.",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If reaction not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "executeReaction",
+        "summary": "Execute a scheduled or completed reaction",
+        "description": "This endpoint allows you to execute a scheduled or completed reaction.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "reactionId",
+            "in": "path",
+            "description": "ID of the reaction to execute.",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If reaction not found"
+          }
+        }
+      }
+    },
+    "/reactions/definitions": {
+      "get": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "listReactionDefinitions",
+        "summary": "List reaction definitions",
+        "description": "List all reaction definitions",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of entries to skip",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max number of entries to include in response. Default is 100.",
+            "required": false,
+            "type": "integer",
+            "default": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/ReactionDefinitions"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "createReactionDefinition",
+        "summary": "Create reaction definition",
+        "description": "Create a new reaction definition",
+        "parameters": [
+          {
+            "name": "reactionDefinition",
+            "in": "body",
+            "description": "The reaction definition",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ReactionDefinition"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "409": {
+            "description": "if name not unique"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    },
+    "/reactions/definitions/{reactionName}": {
+      "delete": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "deleteReactionDefinition",
+        "summary": "Delete a reaction definition",
+        "parameters": [
+          {
+            "name": "reactionName",
+            "in": "path",
+            "description": "The reaction name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If reaction definition not found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "getReactionDefinition",
+        "summary": "Get reaction definition",
+        "parameters": [
+          {
+            "name": "reactionName",
+            "in": "path",
+            "description": "The reaction name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/ReactionDefinition"
+            }
+          },
+          "404": {
+            "description": "If reaction definition not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Event Reaction API"
+        ],
+        "operationId": "createOrUpdateReactionDefinition",
+        "summary": "Update reaction definition",
+        "parameters": [
+          {
+            "name": "reactionName",
+            "in": "path",
+            "description": "The reaction name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "reactionDefinition",
+            "in": "body",
+            "description": "The reaction definition",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ReactionDefinition"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "400": {
+            "description": "if ID mismatch"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    },
+    "/projections": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "listProjections",
+        "summary": "Get projections overview",
+        "description": "Includes projection names and count",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "projections": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ProjectionInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projections/definitions": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "listProjectionDefinitions",
+        "summary": "List projection definitions",
+        "description": "List all definitions",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of entries to skip",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max number of entries to include in response. Default is 100.",
+            "required": false,
+            "type": "integer",
+            "default": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/ProjectionDefinitions"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "createProjectionDefinition",
+        "summary": "Create a projection definition",
+        "description": "Create a new definition",
+        "parameters": [
+          {
+            "name": "projectionDefinition",
+            "in": "body",
+            "description": "Definition of the projection",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProjectionDefinition"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "409": {
+            "description": "if ID not unique"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    },
+    "/projections/definitions/{projectionName}": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "getProjectionDefinition",
+        "summary": "Get projection definition",
+        "parameters": [
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/ProjectionDefinition"
+            }
+          },
+          "404": {
+            "description": "If definition not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "createOrUpdateProjectionDefinition",
+        "summary": "Update a projection definition",
+        "description": "Create or update a definition",
+        "parameters": [
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "projectionDefinition",
+            "in": "body",
+            "description": "Definition of the projection",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProjectionDefinition"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "deleteProjectionDefinition",
+        "summary": "Delete projection definition",
+        "parameters": [
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If definition not found"
+          }
+        }
+      }
+    },
+    "/projections/single/{projectionName}": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "listSingleProjections",
+        "summary": "List single projections",
+        "description": "List all single projections",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "description": "Reference string to filter on. See JsonPath 'setref' for details.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Filter reference value from. Usable if reference is a date or timestamp.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Filter reference value to. Usable if reference is a date or timestamp.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "String to search for. The projection has to be created with 'indexedFields'.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort string. Any combination of the following fields: projectionId, reference, createdAt, updatedAt. Add '+' and '-' prefixes to indicate ascending/descending sort order. Ascending order is default.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of entries to skip",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max number of entries to include in response. Default is 100.",
+            "required": false,
+            "type": "integer",
+            "default": 100
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "If provided, filters on the projection id(s) to only get the specified projections. Provide multiple values to retrieve multiple projections in the response.",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Projections"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "recreateSingleProjections",
+        "summary": "Delete/recreate single projections",
+        "description": "This call deletes all existing projections and starts a rebuild from the beginning of the event history. Keep in mind that this might take a while.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If definition not found"
+          }
+        }
+      }
+    },
+    "/projections/single/{projectionName}/_count": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "getSingleProjectionCount",
+        "summary": "Get single projection count",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "description": "Optional reference string to filter on.",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/ProjectionCount"
+            }
+          }
+        }
+      }
+    },
+    "/projections/single/{projectionName}/{projectionId}": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "getSingleProjection",
+        "summary": "Get single projection",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "projectionId",
+            "in": "path",
+            "description": "The projectionId",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "awaitCreation",
+            "in": "query",
+            "description": "Max number of milliseconds to await the initial creation. Must be between 1 and 60000.",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Projection"
+            }
+          }
+        }
+      }
+    },
+    "/projections/aggregated/{projectionName}": {
+      "get": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "getAggregatedProjection",
+        "summary": "Get aggregated projection",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Projection"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event Projection API"
+        ],
+        "operationId": "recreateAggregatedProjections",
+        "summary": "Delete/recreate aggregated projections",
+        "description": "This call deletes all existing projections and starts a rebuild from the beginning of the event history. Keep in mind that this might take a while.",
+        "parameters": [
+          {
+            "name": "Serialized-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "type": "string",
+            "description": "The optional ID of the tenant."
+          },
+          {
+            "name": "projectionName",
+            "in": "path",
+            "description": "The projection name",
+            "required": true,
+            "type": "string",
+            "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If definition not found"
+          }
+        }
+      }
+    },
+    "/tenants": {
+      "get": {
+        "tags": [
+          "Tenant API"
+        ],
+        "operationId": "listTenants",
+        "summary": "List tenants",
+        "description": "List tenants",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Tenants"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tenant API"
+        ],
+        "operationId": "addTenant",
+        "summary": "Add tenant",
+        "description": "Add tenant",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "body",
+            "description": "Tenant",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "204": {
+            "description": "if no change"
+          },
+          "400": {
+            "description": "If invalid request"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    },
+    "/tenants/{tenantId}": {
+      "put": {
+        "tags": [
+          "Tenant API"
+        ],
+        "operationId": "updateTenant",
+        "summary": "Update tenant",
+        "description": "Update tenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "description": "The tenant id",
+            "required": true,
+            "type": "string",
+            "pattern": "uuid"
+          },
+          {
+            "name": "tenant",
+            "in": "body",
+            "description": "Tenant",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tenant API"
+        ],
+        "operationId": "deleteTenant",
+        "summary": "Delete tenant",
+        "description": "Delete tenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "description": "The tenant id",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "404": {
+            "description": "If definition not found"
+          }
+        }
+      }
+    },
+    "/tenants/{tenantId}/undelete": {
+      "post": {
+        "tags": [
+          "Tenant API"
+        ],
+        "operationId": "undeleteTenant",
+        "summary": "Undelete tenant",
+        "description": "Undelete tenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "description": "The tenant id",
+            "required": true,
+            "type": "string",
+            "pattern": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          },
+          "204": {
+            "description": "if no change"
+          },
+          "400": {
+            "description": "If invalid request"
+          },
+          "422": {
+            "description": "If invalid request body"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "EventBatch": {
+      "type": "object",
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Event"
+          }
+        },
+        "expectedVersion": {
+          "description": "Optional version number enabling optimistic concurrency control in a multi-threaded scenario.",
+          "type": "integer",
+          "example": 1
+        }
+      }
+    },
+    "Bulk": {
+      "type": "object",
+      "required": [
+        "batches"
+      ],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EventBatch"
+          }
+        }
+      }
+    },
+    "Event": {
+      "type": "object",
+      "required": [
+        "eventType"
+      ],
+      "properties": {
+        "eventId": {
+          "description": "Optional eventId. Will be generated if omitted.",
+          "type": "string",
+          "format": "uuid",
+          "example": "f2c8bfc1-c702-4f1a-b295-ef113ed7c8be"
+        },
+        "eventType": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9]+[a-zA-Z0-9\\-_]+[a-zA-Z0-9]+$",
+          "example": "PaymentProcessed"
+        },
+        "data": {
+          "type": "object",
+          "description": "Optional user defined event data map",
+          "example": {
+            "paymentMethod": "CARD",
+            "amount": 1000,
+            "currency": "SEK"
+          }
+        },
+        "encryptedData": {
+          "type": "string",
+          "description": "Optional client-side encrypted payload. Max 65535 bytes."
+        }
+      }
+    },
+    "AggregateSummary": {
+      "type": "object",
+      "properties": {
+        "aggregateId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+        },
+        "aggregateType": {
+          "type": "string",
+          "example": "payment",
+          "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+        },
+        "aggregateVersion": {
+          "type": "integer",
+          "example": 12
+        },
+        "lastUpdatedAt": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1523518143967
+        }
+      }
+    },
+    "ProjectionDefinitions": {
+      "type": "object",
+      "required": [
+        "definitions"
+      ],
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectionDefinition"
+          }
+        },
+        "hasMore": {
+          "description": "Indicates if there are more definitions available.",
+          "type": "boolean",
+          "example": false
+        },
+        "totalCount": {
+          "type": "integer",
+          "example": 1
+        }
+      }
+    },
+    "ProjectionDefinition": {
+      "type": "object",
+      "required": [
+        "projectionName",
+        "feedName",
+        "handlers"
+      ],
+      "properties": {
+        "projectionName": {
+          "description": "Name of the projection type",
+          "type": "string",
+          "example": "orders",
+          "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+        },
+        "feedName": {
+          "description": "Name of the feed",
+          "type": "string",
+          "example": "order"
+        },
+        "aggregated": {
+          "description": "Dictates whether the definition should result in one projection per aggregate type or one projection per aggregateId.",
+          "type": "boolean"
+        },
+        "signingSecret": {
+          "type": "string",
+          "description": "The secret key used to HMAC sign the requests. Only applicable in combination with the use of external/custom event projectors."
+        },
+        "idField": {
+          "type": "string",
+          "description": "Field in the event to use as the projection id. Defaults to the aggregate id."
+        },
+        "handlers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Handler"
+          }
+        },
+        "description": {
+          "description": "Projection definition description",
+          "type": "string",
+          "example": "Projects fully paid orders ready to be shipped"
+        },
+        "indexedFields": {
+          "description": "Name of fields for ",
+          "example": "['orderId', 'customer.customerName']",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Tenants": {
+      "type": "object",
+      "required": [
+        "tenants"
+      ],
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tenant"
+          }
+        }
+      }
+    },
+    "Tenant": {
+      "type": "object",
+      "required": [
+        "tenantId"
+      ],
+      "properties": {
+        "tenantId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+        },
+        "tenantNumber": {
+          "type": "string",
+          "description": "The ever increasing tenant number."
+        },
+        "addedAt": {
+          "description": "Tenant added timestamp",
+          "type": "integer",
+          "format": "int64",
+          "example": 1523518143967
+        },
+        "reference": {
+          "type": "string",
+          "description": "Optional external tenant reference, e.g. a customer number or similar."
+        },
+        "deleted": {
+          "description": "Indicates if the tenant was deleted.",
+          "type": "boolean"
+        },
+        "deletedAt": {
+          "description": "Timestamp when tenant was deleted",
+          "type": "integer",
+          "format": "int64",
+          "example": 1523518143967
+        }
+      }
+    },
+    "Handler": {
+      "type": "object",
+      "required": [
+        "eventType"
+      ],
+      "properties": {
+        "eventType": {
+          "description": "Event type to match the handler against",
+          "type": "string",
+          "example": "OrderCancelledEvent"
+        },
+        "functionUri": {
+          "description": "URI pointing to function when using external event projector.",
+          "type": "string",
+          "example": "https://your-server.com/lambda"
+        },
+        "idField": {
+          "type": "string",
+          "description": "Field in the event to use as the projection id. Defaults to the aggregate id."
+        },
+        "functions": {
+          "type": "array",
+          "description": "The functions to apply for matching events. Will run in specified order",
+          "items": {
+            "$ref": "#/definitions/Function"
+          }
+        }
+      }
+    },
+    "Function": {
+      "type": "object",
+      "required": [
+        "function"
+      ],
+      "properties": {
+        "function": {
+          "description": "The name of the function to apply",
+          "type": "string",
+          "example": "inc"
+        },
+        "targetSelector": {
+          "description": "The selector for the target of the function",
+          "type": "string",
+          "example": "$.projection.orders[?]"
+        },
+        "eventSelector": {
+          "description": "The selector for the event data to use as source",
+          "type": "string",
+          "example": "$.event[?]"
+        },
+        "rawData": {
+          "description": "The raw data to use as input to the function, if applicable",
+          "type": "object"
+        },
+        "targetFilter": {
+          "description": "The target filter determining which state the projection should be for the event to be applied",
+          "type": "string",
+          "example": "@.orderId == $.event.orderId"
+        },
+        "eventFilter": {
+          "description": "Filter for the events, determining for which events the function should be applied",
+          "type": "string",
+          "example": "@.orderAmount > 4000"
+        }
+      }
+    },
+    "Projections": {
+      "type": "object",
+      "required": [
+        "projections",
+        "totalCount"
+      ],
+      "properties": {
+        "projections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Projection"
+          }
+        },
+        "hasMore": {
+          "description": "Indicates if there are more projections available.",
+          "type": "boolean",
+          "example": false
+        },
+        "totalCount": {
+          "type": "integer",
+          "example": 1
+        }
+      }
+    },
+    "Projection": {
+      "type": "object",
+      "required": [
+        "projectionId",
+        "data"
+      ],
+      "properties": {
+        "projectionId": {
+          "description": "The projection id. Will be a UUID if type 'single' and a string if type 'aggregated'.",
+          "type": "string"
+        },
+        "createdAt": {
+          "description": "Entry created timestamp",
+          "type": "integer",
+          "format": "int64",
+          "example": 1523518143967
+        },
+        "updatedAt": {
+          "description": "Entry updated timestamp",
+          "type": "integer",
+          "format": "int64",
+          "example": 1523518144467
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "ProjectionCount": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "description": "The projection count",
+          "type": "integer",
+          "format": "int64",
+          "example": 12345
+        }
+      }
+    },
+    "Reactions": {
+      "type": "object",
+      "required": [
+        "reactions"
+      ],
+      "properties": {
+        "reactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Reaction"
+          }
+        }
+      }
+    },
+    "Reaction": {
+      "type": "object",
+      "properties": {
+        "reactionId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+        },
+        "reactionName": {
+          "description": "Unique name of the action",
+          "type": "string",
+          "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$",
+          "example": "payment-processed-email-reaction"
+        },
+        "aggregateType": {
+          "type": "string",
+          "example": "payment",
+          "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+        },
+        "aggregateId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+        },
+        "eventId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+        },
+        "createdAt": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1503386583474
+        },
+        "triggerAt": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1503386583474
+        },
+        "finishedAt": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1503386583474
+        },
+        "status": {
+          "type": "string",
+          "example": "COMPLETED"
+        }
+      }
+    },
+    "ReactionDefinitions": {
+      "type": "object",
+      "required": [
+        "definitions"
+      ],
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReactionDefinition"
+          }
+        },
+        "hasMore": {
+          "description": "Indicates if there are more definitions available.",
+          "type": "boolean",
+          "example": false
+        },
+        "totalCount": {
+          "type": "integer",
+          "example": 1
+        }
+      }
+    },
+    "ReactionDefinition": {
+      "type": "object",
+      "required": [
+        "reactionName",
+        "feedName",
+        "reactOnEventType",
+        "action"
+      ],
+      "properties": {
+        "reactionName": {
+          "description": "Unique name of the action",
+          "type": "string",
+          "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$",
+          "example": "payment-processed-email-reaction"
+        },
+        "feedName": {
+          "description": "Name of the feed",
+          "type": "string",
+          "example": "payment"
+        },
+        "description": {
+          "description": "Definition description",
+          "type": "string",
+          "example": "Reaction that sends an email when a payment has been processed"
+        },
+        "reactOnEventType": {
+          "description": "Event type to react on",
+          "type": "string",
+          "example": "PaymentProcessed"
+        },
+        "cancelOnEventTypes": {
+          "description": "Event types to cancel reaction scheduled in the future",
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            "OrderCanceledEvent"
+          ]
+        },
+        "triggerTimeField": {
+          "description": "Optional path to event data field containing trigger time. If not specified, trigger time will be ASAP. Dot notation supported.",
+          "type": "string",
+          "example": "my.event.data.field"
+        },
+        "offset": {
+          "description": "Optional trigger time offset. Defined in the ISO-8601 duration format (PnDTnHnMn.nS). May be negative.",
+          "type": "string",
+          "example": "PT1H"
+        },
+        "action": {
+          "$ref": "#/definitions/Action"
+        }
+      }
+    },
+    "Action": {
+      "type": "object",
+      "description": "See documentation for details on which field combinations are valid: https://serialized.io/docs/reactions/api-reference",
+      "properties": {
+        "actionType": {
+          "type": "string",
+          "enum": [
+            "HTTP_POST",
+            "SLACK_POST",
+            "IFTTT_POST",
+            "AUTOMATE_POST",
+            "ZAPIER_POST"
+          ]
+        },
+        "signingSecret": {
+          "type": "string",
+          "description": "The secret key used to HMAC sign the requests."
+        },
+        "httpHeaders": {
+          "description": "Optional headers",
+          "type": "object"
+        },
+        "targetUri": {
+          "type": "string",
+          "description": "The endpoint URI to call."
+        },
+        "body": {
+          "type": "object"
+        },
+        "valueMap": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "actionType"
+      ]
+    },
+    "ProjectionInfo": {
+      "type": "object",
+      "properties": {
+        "projectionName": {
+          "type": "string",
+          "example": "shipping-stats"
+        },
+        "feedName": {
+          "type": "string",
+          "example": "shipment"
+        },
+        "aggregated": {
+          "description": "True if the projection is aggregated, false if single.",
+          "type": "boolean",
+          "example": false
+        },
+        "projectionsCount": {
+          "description": "Number of projections",
+          "type": "integer",
+          "example": 1977
+        },
+        "running": {
+          "description": "True if the projector engine is actively feeding new entries.",
+          "type": "boolean",
+          "example": true
+        },
+        "feedProgress": {
+          "$ref": "#/definitions/FeedProgress"
+        }
+      }
+    },
+    "FeedProgress": {
+      "type": "object",
+      "properties": {
+        "sequenceNumber": {
+          "description": "Current processed sequence number",
+          "type": "integer",
+          "example": 1977
+        },
+        "atHead": {
+          "description": "True if the projection engine has reached head at least once, i.e. a replay has been done.",
+          "type": "boolean",
+          "example": false
+        }
+      }
+    },
+    "FeedInfo": {
+      "type": "object",
+      "properties": {
+        "aggregateType": {
+          "type": "string",
+          "example": "payment",
+          "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+        },
+        "aggregateCount": {
+          "type": "integer",
+          "example": 1337
+        },
+        "batchCount": {
+          "type": "integer",
+          "example": 7331
+        },
+        "eventCount": {
+          "type": "integer",
+          "example": 9977
+        },
+        "currentSequenceNumber": {
+          "type": "integer",
+          "example": 12345
+        }
+      }
+    },
+    "Feed": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FeedEntry"
+          }
+        },
+        "hasMore": {
+          "description": "Indicates if there are more events available.",
+          "type": "boolean",
+          "example": false
+        },
+        "currentSequenceNumber": {
+          "type": "integer",
+          "example": 123456
+        }
+      }
+    },
+    "FeedEntry": {
+      "type": "object",
+      "properties": {
+        "sequenceNumber": {
+          "type": "integer",
+          "example": 12314
+        },
+        "aggregateId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
+        },
+        "timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1503386583474
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Event"
+          }
+        }
+      }
+    }
+  }
+}
