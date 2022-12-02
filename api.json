@@ -97,16 +97,33 @@
         ],
         "responses": {
           "200": {
-            "description": "Event(s) successfully stored."
+            "description": "Event(s) successfully stored.",
+            "examples": {
+              "aggregateVersion": 1
+            }
           },
           "400": {
-            "description": "Invalid aggregate type or field name."
+            "description": "Invalid aggregate type or field name.",
+            "examples": {
+              "code": 400,
+              "message": "Unable to process JSON"
+            }
           },
           "409": {
-            "description": "Conflict due to expected version mismatch."
+            "description": "Conflict due to expected version mismatch.",
+            "examples": {
+              "code": 409,
+              "message": "Cannot create new aggregate with ID [745bddb1-e63b-4b19-82ee-b28ab399b56f] and type [order] as it already exists"
+            }
           },
           "422": {
-            "description": "If invalid request body"
+            "description": "If invalid request body",
+            "examples": {
+              "errors": [
+                "events must not be empty",
+                "events size must be between 1 and 64"
+              ]
+            }
           }
         }
       }
@@ -141,22 +158,72 @@
             "description": "Bulk of one or more batches",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/Bulk"
+              "$ref": "#/definitions/Bulk",
+              "example": {
+                "batches": [
+                  {
+                    "aggregateId": "b0764dea-4a0f-4c26-b126-9ec4644c20d0",
+                    "expectedVersion": 0,
+                    "events": [
+                      {
+                        "eventType": "OrderPlaced",
+                        "eventId": "f2c8bfc1-c702-4f1a-b295-ef113ed7c8be",
+                        "data": {
+                          "sku": "15522-aad-12",
+                          "amount": 1000,
+                          "currency": "USD"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "aggregateId": "a3f7b384-7329-4699-9496-5aa7e6b20ebb",
+                    "expectedVersion": 0,
+                    "events": [
+                      {
+                        "eventType": "OrderPlaced",
+                        "eventId": "4c6970c8-bcb4-4fff-a924-65d1723b5166",
+                        "data": {
+                          "sku": "11123-acd-224",
+                          "amount": 2000,
+                          "currency": "USD"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Event(s) successfully stored."
+            "description": "Event(s) successfully stored.",
+            "examples": {
+            }
           },
           "400": {
-            "description": "Invalid aggregate type or field name."
+            "description": "Invalid aggregate type or field name.",
+            "examples": {
+              "code": 400,
+              "message": "Unable to process JSON"
+            }
           },
           "409": {
-            "description": "Conflict due to expected version mismatch."
+            "description": "Conflict due to expected version mismatch.",
+            "examples": {
+              "code": 409,
+              "message": "Cannot create new aggregate with ID [745bddb1-e63b-4b19-82ee-b28ab399b56f] and type [order] as it already exists"
+            }
           },
           "422": {
-            "description": "If invalid request body"
+            "description": "If invalid request body",
+            "examples": {
+              "errors": [
+                "events must not be empty",
+                "events size must be between 1 and 64"
+              ]
+            }
           }
         }
       }
@@ -272,7 +339,8 @@
                   "aggregateVersion": 3,
                   "lastUpdatedAt": 1669725760624
                 }
-              ]
+              ],
+              "hasMore": true
             },
             "schema": {
               "description": "The list of aggregates.",
@@ -379,6 +447,9 @@
         "responses": {
           "200": {
             "description": "The generated temporary delete token needed to permanently delete the aggregate. The token will be valid for ten minutes and must be passed as a query parameter to trigger the delete of the aggregate.",
+            "examples": {
+              "deleteToken": "12c3780f-2dcb-340f-5532-5693be83f21c"
+            },
             "schema": {
               "description": "The delete token, valid for ten minutes.",
               "type": "object",
@@ -395,7 +466,11 @@
             "description": "If delete token was valid and the aggregate was successfully deleted."
           },
           "403": {
-            "description": "If delete token was invalid or expired."
+            "description": "If delete token was invalid or expired.",
+            "examples": {
+              "code": 403,
+              "message": "Forbidden"
+            }
           }
         }
       },
@@ -456,6 +531,46 @@
         "responses": {
           "200": {
             "description": "Aggregate successfully loaded",
+            "examples": {
+              "aggregateId": "b836e27d-6107-40f6-abb2-ae2e9d2815bf",
+              "aggregateType": "order",
+              "aggregateVersion": 2,
+              "events": [
+                {
+                  "eventId": "ad952c6c-e549-4084-b01a-6748441b13e1",
+                  "eventType": "OrderPlaced",
+                  "data": {
+                    "orderId": "b836e27d-6107-40f6-abb2-ae2e9d2815bf",
+                    "customerId": "e9de00b6-70d1-459a-9f84-57633269f8fe",
+                    "sku": "936",
+                    "orderAmount": 4310,
+                    "placedAt": 1669556961135
+                  }
+                },
+                {
+                  "eventId": "59d44018-0860-4849-9ba6-64aba4513279",
+                  "eventType": "PaymentReceived",
+                  "data": {
+                    "orderId": "b836e27d-6107-40f6-abb2-ae2e9d2815bf",
+                    "customerId": "e9de00b6-70d1-459a-9f84-57633269f8fe",
+                    "amountPaid": 4310,
+                    "receivedAt": 1669617889453,
+                    "paidAt": 1669617889453
+                  }
+                },
+                {
+                  "eventId": "85040683-b439-40cb-9cf4-55ec5cc2cbbf",
+                  "eventType": "OrderFullyPaid",
+                  "data": {
+                    "orderId": "b836e27d-6107-40f6-abb2-ae2e9d2815bf",
+                    "customerId": "e9de00b6-70d1-459a-9f84-57633269f8fe",
+                    "orderAmount": 4310,
+                    "paidAt": 1669617889453
+                  }
+                }
+              ],
+              "hasMore": false
+            },
             "schema": {
               "description": "The aggregate containing all its events, since the beginning of time.",
               "type": "object",
@@ -490,7 +605,11 @@
             }
           },
           "404": {
-            "description": "If aggregate not found."
+            "description": "If aggregate not found.",
+            "examples": {
+              "code": 404,
+              "message": "Unable to find aggregate with ID [b836e27d-6107-40f6-abb2-ae2e9d2815ba], type [order]"
+            }
           }
         }
       }
@@ -515,6 +634,17 @@
         "responses": {
           "200": {
             "description": "Feeds successfully received",
+            "examples": {
+              "feeds": [
+                {
+                  "aggregateType": "order",
+                  "aggregateCount": 47,
+                  "batchCount": 102,
+                  "eventCount": 132,
+                  "currentSequenceNumber": 102
+                }
+              ]
+            },
             "schema": {
               "type": "object",
               "properties": {
@@ -644,6 +774,52 @@
         "responses": {
           "200": {
             "description": "Feed successfully received",
+            "examples": {
+              "entries": [
+                {
+                  "sequenceNumber": 1,
+                  "aggregateId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                  "timestamp": 1669427253512,
+                  "type": "order",
+                  "feedName": "order",
+                  "events": [
+                    {
+                      "eventId": "8121c711-fdaf-4fda-8a2d-38395ca65c1a",
+                      "eventType": "OrderPlaced",
+                      "data": {
+                        "orderId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                        "customerId": "535adc0d-4a27-4082-b14d-4435266dde63",
+                        "sku": "782",
+                        "orderAmount": 7577,
+                        "placedAt": 1669427253512
+                      }
+                    }
+                  ]
+                },
+                {
+                  "sequenceNumber": 2,
+                  "aggregateId": "deb7e9ae-cfba-4108-9738-06f6741c4a6c",
+                  "timestamp": 1668710034807,
+                  "type": "order",
+                  "feedName": "order",
+                  "events": [
+                    {
+                      "eventId": "3a1c8020-630c-4b9b-b221-8bb7ced1de80",
+                      "eventType": "OrderPlaced",
+                      "data": {
+                        "orderId": "deb7e9ae-cfba-4108-9738-06f6741c4a6c",
+                        "customerId": "507050ab-2a17-41b0-8431-aa6c02953ca3",
+                        "sku": "47",
+                        "orderAmount": 7213,
+                        "placedAt": 1668710034807
+                      }
+                    }
+                  ]
+                }
+              ],
+              "hasMore": true,
+              "currentSequenceNumber": 102
+            },
             "schema": {
               "$ref": "#/definitions/Feed"
             }
@@ -687,6 +863,9 @@
         "responses": {
           "200": {
             "description": "Feed successfully received",
+            "examples": {
+              "totalCount": 102
+            },
             "schema": {
               "type": "object",
               "properties": {
@@ -819,6 +998,50 @@
         "responses": {
           "200": {
             "description": "Feed successfully received",
+            "examples": {
+              "entries": [
+                {
+                  "sequenceNumber": 1,
+                  "aggregateId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                  "timestamp": 1669427253512,
+                  "feedName": "order",
+                  "events": [
+                    {
+                      "eventId": "8121c711-fdaf-4fda-8a2d-38395ca65c1a",
+                      "eventType": "OrderPlaced",
+                      "data": {
+                        "orderId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                        "customerId": "535adc0d-4a27-4082-b14d-4435266dde63",
+                        "sku": "782",
+                        "orderAmount": 7577,
+                        "placedAt": 1669427253512
+                      }
+                    }
+                  ]
+                },
+                {
+                  "sequenceNumber": 2,
+                  "aggregateId": "deb7e9ae-cfba-4108-9738-06f6741c4a6c",
+                  "timestamp": 1668710034807,
+                  "feedName": "order",
+                  "events": [
+                    {
+                      "eventId": "3a1c8020-630c-4b9b-b221-8bb7ced1de80",
+                      "eventType": "OrderPlaced",
+                      "data": {
+                        "orderId": "deb7e9ae-cfba-4108-9738-06f6741c4a6c",
+                        "customerId": "507050ab-2a17-41b0-8431-aa6c02953ca3",
+                        "sku": "47",
+                        "orderAmount": 7213,
+                        "placedAt": 1668710034807
+                      }
+                    }
+                  ]
+                }
+              ],
+              "hasMore": true,
+              "currentSequenceNumber": 102
+            },
             "schema": {
               "$ref": "#/definitions/Feed"
             }
@@ -869,6 +1092,9 @@
         "responses": {
           "200": {
             "description": "Feed successfully received",
+            "examples": {
+              "totalCount": 93
+            },
             "schema": {
               "type": "object",
               "properties": {
@@ -928,6 +1154,30 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "reactions": [
+                {
+                  "reactionId": "53d44c82-ee5e-49af-aa34-a888c1f48d46",
+                  "reactionName": "payment-reminder-notification",
+                  "aggregateType": "order",
+                  "aggregateId": "80036d6b-fdfd-4b92-85a1-1892cdecdc6d",
+                  "eventId": "5fbaec84-1088-4c57-9896-9b5d745b9056",
+                  "createdAt": 1669993234575,
+                  "triggerAt": 1670598034574,
+                  "status": "SCHEDULED"
+                },
+                {
+                  "reactionId": "38531a78-63f7-4226-b824-aa4ab4b76509",
+                  "reactionName": "payment-reminder-notification",
+                  "aggregateType": "order",
+                  "aggregateId": "745bddb1-e63b-4b19-82ee-b28ab399b56f",
+                  "eventId": "831d5015-ce55-46cb-a018-0d395b5e2d58",
+                  "createdAt": 1669992844870,
+                  "triggerAt": 1670597644870,
+                  "status": "SCHEDULED"
+                }
+              ]
+            },
             "schema": {
               "$ref": "#/definitions/Reactions"
             }
@@ -1032,6 +1282,27 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "definitions": [
+                {
+                  "reactionName": "payment-reminder-notification",
+                  "feedName": "order",
+                  "reactOnEventType": "OrderPlaced",
+                  "offset": "P7D",
+                  "cancelOnEventTypes": [
+                    "OrderFullyPaid"
+                  ],
+                  "action": {
+                    "actionType": "HTTP_POST",
+                    "targetUri": "https://httpbin.org/post",
+                    "signingSecret": "my-secret-used-in-hmac-signature"
+                  },
+                  "description": "Sends a reminder to the customer if order has not been fully paid within a week"
+                }
+              ],
+              "totalCount": 1,
+              "hasMore": false
+            },
             "schema": {
               "$ref": "#/definitions/ReactionDefinitions"
             }
@@ -1114,12 +1385,31 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "reactionName": "payment-reminder-notification",
+              "feedName": "order",
+              "reactOnEventType": "OrderPlaced",
+              "offset": "P7D",
+              "cancelOnEventTypes": [
+                "OrderFullyPaid"
+              ],
+              "action": {
+                "actionType": "HTTP_POST",
+                "targetUri": "https://httpbin.org/post",
+                "signingSecret": "my-secret-used-in-hmac-signature"
+              },
+              "description": "Sends a reminder to the customer if order has not been fully paid within a week"
+            },
             "schema": {
               "$ref": "#/definitions/ReactionDefinition"
             }
           },
           "404": {
-            "description": "If reaction definition not found"
+            "description": "If reaction definition not found",
+            "examples": {
+              "code": 404,
+              "message": "Unable to find reaction definition with name [payment-reminder]"
+            }
           }
         }
       },
@@ -1181,6 +1471,32 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "projections": [
+                {
+                  "projectionName": "orders-by-id",
+                  "feedName": "order",
+                  "aggregated": false,
+                  "projectionsCount": 47,
+                  "running": true,
+                  "feedProgress": {
+                    "sequenceNumber": 102,
+                    "atHead": true
+                  }
+                },
+                {
+                  "projectionName": "orders-per-customer",
+                  "feedName": "order",
+                  "aggregated": false,
+                  "projectionsCount": 30,
+                  "running": true,
+                  "feedProgress": {
+                    "sequenceNumber": 102,
+                    "atHead": true
+                  }
+                }
+              ]
+            },
             "schema": {
               "type": "object",
               "properties": {
@@ -1225,6 +1541,35 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "definitions": [
+                {
+                  "aggregated": false,
+                  "projectionName": "orders-by-id",
+                  "feedName": "order",
+                  "handlers": [
+                    {
+                      "eventType": "OrderPlaced",
+                      "functions": [
+                        {
+                          "function": "merge",
+                          "targetSelector": "$.projection",
+                          "eventSelector": "$.event"
+                        },
+                        {
+                          "function": "setref",
+                          "targetSelector": "$.projection.placedAt",
+                          "eventSelector": "$.event"
+                        }
+                      ]
+                    }
+                  ],
+                  "description": "All orders by ID"
+                }
+              ],
+              "totalCount": 5,
+              "hasMore": true
+            },
             "schema": {
               "$ref": "#/definitions/ProjectionDefinitions"
             }
@@ -1282,12 +1627,39 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "aggregated": false,
+              "projectionName": "orders-by-id",
+              "feedName": "order",
+              "handlers": [
+                {
+                  "eventType": "OrderPlaced",
+                  "functions": [
+                    {
+                      "function": "merge",
+                      "targetSelector": "$.projection",
+                      "eventSelector": "$.event"
+                    },
+                    {
+                      "function": "setref",
+                      "targetSelector": "$.projection.placedAt",
+                      "eventSelector": "$.event"
+                    }
+                  ]
+                }
+              ],
+              "description": "All orders by ID"
+            },
             "schema": {
               "$ref": "#/definitions/ProjectionDefinition"
             }
           },
           "404": {
-            "description": "If definition not found"
+            "description": "If definition not found",
+            "examples": {
+              "code": 404,
+              "message": "Projection definition [orders] not found"
+            }
           }
         }
       },
@@ -1442,6 +1814,25 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "projections": [
+                {
+                  "projectionId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                  "reference": "1669427253512",
+                  "createdAt": 1669827481596,
+                  "updatedAt": 1669827481596,
+                  "data": {
+                    "orderId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                    "customerId": "535adc0d-4a27-4082-b14d-4435266dde63",
+                    "sku": "782",
+                    "orderAmount": 7577,
+                    "placedAt": 1669427253512
+                  }
+                }
+              ],
+              "totalCount": 47,
+              "hasMore": true
+            },
             "schema": {
               "$ref": "#/definitions/Projections"
             }
@@ -1516,6 +1907,9 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "count": 47
+            },
             "schema": {
               "$ref": "#/definitions/ProjectionCount"
             }
@@ -1566,6 +1960,19 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "projectionId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+              "reference": "1669427253512",
+              "createdAt": 1669827481596,
+              "updatedAt": 1669827481596,
+              "data": {
+                "orderId": "7ccd7937-0f1f-46e7-aec8-073cd4881f33",
+                "customerId": "535adc0d-4a27-4082-b14d-4435266dde63",
+                "sku": "782",
+                "orderAmount": 7577,
+                "placedAt": 1669427253512
+              }
+            },
             "schema": {
               "$ref": "#/definitions/Projection"
             }
@@ -1600,6 +2007,15 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "projectionId": "total-revenue",
+              "createdAt": 1669827481533,
+              "updatedAt": 1669827482498,
+              "data": {
+                "revenue": 162827,
+                "updatedAt": 1669308498623
+              }
+            },
             "schema": {
               "$ref": "#/definitions/Projection"
             }
