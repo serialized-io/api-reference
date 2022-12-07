@@ -1758,14 +1758,14 @@
           {
             "name": "from",
             "in": "query",
-            "description": "Filter reference value from. Usable if reference is a date or timestamp.",
+            "description": "Filter reference value from, inclusive. Usable if reference is a date or timestamp.",
             "type": "string",
             "required": false
           },
           {
             "name": "to",
             "in": "query",
-            "description": "Filter reference value to. Usable if reference is a date or timestamp.",
+            "description": "Filter reference value to, inclusive. Usable if reference is a date or timestamp.",
             "type": "string",
             "required": false
           },
@@ -2387,7 +2387,7 @@
           "example": "Projects fully paid orders ready to be shipped"
         },
         "indexedFields": {
-          "description": "Name of fields for ",
+          "description": "Name of fields to index. Indexed fields can be queried using the 'search' query parameter and the /projections/single/{projectionName} endpoint",
           "example": "['orderId', 'customer.customerName']",
           "type": "array",
           "items": {
