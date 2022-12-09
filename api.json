@@ -2232,7 +2232,7 @@
         "batches"
       ],
       "properties": {
-        "events": {
+        "batches": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/BulkEventBatch"
