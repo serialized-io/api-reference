@@ -2697,7 +2697,7 @@
           "description": "Event types to cancel reaction scheduled in the future",
           "type": "array",
           "items": {
-            "type": "object"
+            "type": "string"
           },
           "example": [
             "OrderCanceledEvent"
