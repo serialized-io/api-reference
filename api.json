@@ -2214,6 +2214,7 @@
       ],
       "properties": {
         "events": {
+          "description": "Array of domain events",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Event"
@@ -2233,6 +2234,7 @@
       ],
       "properties": {
         "batches": {
+          "description": "Array of domain event batches",
           "type": "array",
           "items": {
             "$ref": "#/definitions/BulkEventBatch"
@@ -2248,6 +2250,7 @@
       ],
       "properties": {
         "aggregateId": {
+          "description": "The ID of the aggregate",
           "type": "string",
           "format": "uuid",
           "example": "22c3780f-6dcb-440f-8532-6693be83f21c"
@@ -2278,6 +2281,7 @@
           "example": "f2c8bfc1-c702-4f1a-b295-ef113ed7c8be"
         },
         "eventType": {
+          "description": "The domain event type, eg. PaymentProcessed or OrderPlaced.",
           "type": "string",
           "pattern": "^[a-zA-Z0-9]+[a-zA-Z0-9\\-_]+[a-zA-Z0-9]+$",
           "example": "PaymentProcessed"
@@ -2763,6 +2767,7 @@
           "example": "shipping-stats"
         },
         "feedName": {
+          "description": "The aggregate type the projection definition feeds from",
           "type": "string",
           "example": "shipment"
         },
