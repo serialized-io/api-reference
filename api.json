@@ -2068,6 +2068,24 @@
         "responses": {
           "200": {
             "description": "successful operation",
+            "examples": {
+              "tenants": [
+                {
+                  "tenantId": "faa0e4d2-a261-4b5b-98a6-d7802b586687",
+                  "tenantNumber": "1",
+                  "addedAt": 1669827481533,
+                  "reference": "Alfa Inc.",
+                  "deleted": true
+                },
+                {
+                  "tenantId": "e2880fa4-f40d-4477-8c33-9520c3f23741",
+                  "tenantNumber": "2",
+                  "addedAt": 1669308498623,
+                  "reference": "Beta Inc.",
+                  "deleted": false
+                }
+              ]
+            },
             "schema": {
               "$ref": "#/definitions/Tenants"
             }
