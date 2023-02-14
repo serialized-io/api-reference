@@ -1355,6 +1355,14 @@
             "required": true,
             "type": "string",
             "pattern": "^[a-z0-9]+[a-z0-9\\-_]+[a-z0-9]+$"
+          },
+          {
+            "name": "keepScheduledReactions",
+            "in": "query",
+            "description": "Keep existing scheduled reactions",
+            "required": false,
+            "type": "boolean",
+            "default": false
           }
         ],
         "responses": {
@@ -2731,7 +2739,7 @@
           "example": "my.event.data.field"
         },
         "offset": {
-          "description": "Optional trigger time offset. Defined in the ISO-8601 duration format (PnDTnHnMn.nS). May be negative.",
+          "description": "Optional trigger time offset. Defined in the ISO-8601 duration format (PnDTnHnMn.nS). May be negative if 'triggerTimeField' is set.",
           "type": "string",
           "example": "PT1H"
         },
