@@ -1135,6 +1135,34 @@
             "default": "ALL"
           },
           {
+            "name": "from",
+            "in": "query",
+            "description": "Filter 'triggerAt' timestamp from, inclusive.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Filter 'triggerAt' timestamp to, exclusive.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "aggregateId",
+            "in": "query",
+            "description": "Filter by aggregate ID.",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "description": "Filter by event ID.",
+            "type": "string",
+            "required": false
+          },
+          {
             "name": "skip",
             "in": "query",
             "description": "Number of entries to skip",
